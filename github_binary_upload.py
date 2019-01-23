@@ -59,11 +59,15 @@ class InvalidServerNameError(Exception):
     pass
 
 
-class CredentialsReadError(Exception):
+class MissingProjectError(Exception):
     pass
 
 
 class MissingTagError(Exception):
+    pass
+
+
+class CredentialsReadError(Exception):
     pass
 
 
@@ -312,7 +316,7 @@ def get_argumentparser() -> argparse.ArgumentParser:
     parser.add_argument(
         "-V", "--version", action="store_true", dest="print_version", help="print the version number and exit"
     )
-    parser.add_argument("project", help='GitHub project in the format "<user>/<project name>"')
+    parser.add_argument("project", nargs="?", help='GitHub project in the format "<user>/<project name>"')
     parser.add_argument(
         "tag", nargs="?", help="tag that will be published as a release, ignored if '--latest' is given"
     )
@@ -329,6 +333,10 @@ def parse_arguments() -> AttributeDict:
             args.github_server = match_obj.group(1)  # pylint: disable=attribute-defined-outside-init
         else:
             raise InvalidServerNameError("{} is not a valid server name.".format(args.github_server))
+        if args.project is None:
+            raise MissingProjectError("No project is given.")
+        if not args.latest_tag and args.tag is None:
+            raise MissingTagError("No tag is given.")
         if args.username is not None:
             if sys.stdin.isatty():
                 args["password"] = getpass.getpass()
@@ -346,8 +354,6 @@ def parse_arguments() -> AttributeDict:
                         'use the "--user" option.'
                     ).format(f=args.credentials_file)
                 )
-        if not args.latest_tag and args.tag is None:
-            raise MissingTagError("No tag is given.")
         if args.latest_tag and args.tag is not None:
             # In this case `args.tag` is part of the assets file list (but parsed wrongly)
             args.assets.insert(0, args.tag)
@@ -366,8 +372,9 @@ def main() -> None:
         JSONError,
         InvalidUploadUrlError,
         InvalidServerNameError,
-        CredentialsReadError,
+        MissingProjectError,
         MissingTagError,
+        CredentialsReadError,
     )
     try:
         args = parse_arguments()
