@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import collections
 import getpass
 import json
 import logging
@@ -138,6 +139,10 @@ class AttributeDict(dict):  # type: ignore
         self[attr] = value
 
 
+Release = collections.namedtuple("Release", ["id", "asset_upload_url"])
+Asset = collections.namedtuple("Asset", ["id", "name"])
+
+
 def get_mimetype(filepath: str) -> str:
     if not os.path.isfile(filepath):
         raise FileNotFoundError('The file "{}" does not exist or is not a regular file.'.format(filepath))
@@ -160,7 +165,7 @@ def get_mimetype(filepath: str) -> str:
 def publish_release_from_tag(
     project: str,
     tag: Optional[str],
-    assets: List[str],
+    asset_filepaths: List[str],
     github_server: str,
     username: str,
     password: str,
@@ -191,8 +196,17 @@ def publish_release_from_tag(
         except KeyError as e:
             raise JSONError('Got an unexpected json object missing the key "{}".'.format(e.args[0]))
 
-    def publish_release(tag: str) -> str:
-        def fetch_existing_release() -> Optional[str]:
+    def publish_release(tag: str) -> Release:
+        def strip_asset_upload_url(asset_upload_url_with_get_params: str) -> str:
+            match_obj = re.match(r"([^{]+)(?:\{.*\})?", asset_upload_url_with_get_params)
+            if not match_obj:
+                raise InvalidUploadUrlError(
+                    'The upload url "{}" is not in the expected format.'.format(asset_upload_url_with_get_params)
+                )
+            asset_upload_url = match_obj.group(1)  # type: str
+            return asset_upload_url
+
+        def fetch_existing_release() -> Optional[Release]:
             try:
                 release_query_url = "{}/repos/{}/releases/tags/{}".format(github_api_root_url, project, tag)
                 response = requests.get(
@@ -200,14 +214,17 @@ def publish_release_from_tag(
                 )
                 response.raise_for_status()
                 logger.info('Fetched the existing release "%s" in the GitHub repository "%s"', tag, project)
-                asset_upload_url_with_get_params = response.json()["upload_url"]
-                return asset_upload_url_with_get_params
+                response_json = response.json()
+                asset_upload_url_with_get_params = response_json["upload_url"]
+                asset_upload_url = strip_asset_upload_url(asset_upload_url_with_get_params)
+                release = Release(response_json["id"], asset_upload_url)
+                return release
             except requests.HTTPError as e:
                 if e.response.status_code == 404:
                     return None
                 raise HTTPError('Could not fetch the release "{}" due to a severe HTTP error.'.format(tag))
 
-        def create_release() -> str:
+        def create_release() -> Release:
             try:
                 release_creation_url = "{}/repos/{}/releases".format(github_api_root_url, project)
                 response = requests.post(
@@ -217,8 +234,11 @@ def publish_release_from_tag(
                 )
                 response.raise_for_status()
                 logger.info('Created the release "%s" in the GitHub repository "%s"', tag, project)
-                asset_upload_url_with_get_params = response.json()["upload_url"]
-                return asset_upload_url_with_get_params
+                response_json = response.json()
+                asset_upload_url_with_get_params = response_json["upload_url"]
+                asset_upload_url = strip_asset_upload_url(asset_upload_url_with_get_params)
+                release = Release(response_json["id"], asset_upload_url)
+                return release
             except requests.HTTPError:
                 raise HTTPError('Could not create the release "{}".'.format(tag))
             except json.decoder.JSONDecodeError:
@@ -226,24 +246,50 @@ def publish_release_from_tag(
             except KeyError as e:
                 raise JSONError('Got an unexpected json object missing the key "{}".'.format(e.args[0]))
 
-        asset_upload_url_with_get_params = fetch_existing_release()
-        if asset_upload_url_with_get_params is None:
-            asset_upload_url_with_get_params = create_release()
-        match_obj = re.match(r"([^{]+)(?:\{.*\})?", asset_upload_url_with_get_params)
-        if not match_obj:
-            raise InvalidUploadUrlError(
-                'The upload url "{}" is not in the expected format.'.format(asset_upload_url_with_get_params)
-            )
-        asset_upload_url = match_obj.group(1)  # type: str
-        return asset_upload_url
+        release = fetch_existing_release()
+        if release is None:
+            release = create_release()
+        return release
 
-    def upload_asset(asset_upload_url: str, asset_filepath: str) -> None:
+    def list_assets(release: Release) -> List[Asset]:
+        try:
+            asset_list_url = "{}/repos/{}/releases/{}/assets".format(github_api_root_url, project, release.id)
+            response = requests.get(asset_list_url, auth=(username, password))
+            response.raise_for_status()
+            assets = [Asset(asset_dict["id"], asset_dict["name"]) for asset_dict in response.json()]
+            return assets
+        except requests.HTTPError:
+            raise HTTPError('Could not get a list of assets for project "{}".'.format(project))
+        except json.decoder.JSONDecodeError:
+            raise JSONError("Got an invalid json string.")
+        except KeyError as e:
+            raise JSONError('Got an unexpected json object missing the key "{}".'.format(e.args[0]))
+
+    def delete_asset(asset: Asset) -> None:
+        try:
+            asset_delete_url = "{}/repos/{}/releases/assets/{}".format(github_api_root_url, project, asset.id)
+            response = requests.delete(asset_delete_url, auth=(username, password))
+            response.raise_for_status()
+            logger.info(
+                'Deleted the asset "%s" attached to release "%s" of the GitHub repository "%s"',
+                asset.name,
+                tag,
+                project,
+            )
+        except requests.HTTPError:
+            raise HTTPError('Could not get a list of assets for project "{}".'.format(project))
+        except json.decoder.JSONDecodeError:
+            raise JSONError("Got an invalid json string.")
+        except KeyError as e:
+            raise JSONError('Got an unexpected json object missing the key "{}".'.format(e.args[0]))
+
+    def upload_asset(release: Release, asset_filepath: str) -> None:
         asset_filename = os.path.basename(asset_filepath)
         try:
             asset_mimetype = get_mimetype(asset_filepath)
             with open(asset_filepath, "rb") as f:
                 response = requests.post(
-                    "{}?name={}".format(asset_upload_url, asset_filename),
+                    "{}?name={}".format(release.asset_upload_url, asset_filename),
                     auth=(username, password),
                     data=f,
                     headers={"Content-Type": asset_mimetype},
@@ -263,10 +309,20 @@ def publish_release_from_tag(
         tag = fetch_latest_tag()
     if dry_run:
         logger.info('Would create the release "%s" in the GitHub repository "%s"', tag, project)
+        assets = []  # type: List[Asset]
     else:
-        asset_upload_url = publish_release(tag)
-    for asset_filepath in assets:
+        release = publish_release(tag)
+        assets = list_assets(release)
+    for asset_filepath in asset_filepaths:
+        asset_matches = [asset for asset in assets if asset.name == os.path.basename(asset_filepath)]
         if dry_run:
+            for asset_match in asset_matches:
+                logger.info(
+                    'Would delete the asset "%s" attached to release "%s" of the GitHub repository "%s"',
+                    asset_match.name,
+                    tag,
+                    project,
+                )
             logger.info(
                 'Would upload the asset "%s" attached to release "%s" of the GitHub repository "%s"',
                 os.path.basename(asset_filepath),
@@ -274,7 +330,9 @@ def publish_release_from_tag(
                 project,
             )
         else:
-            upload_asset(asset_upload_url, asset_filepath)
+            for asset_match in asset_matches:
+                delete_asset(asset_match)
+            upload_asset(release, asset_filepath)
 
 
 def get_argumentparser() -> argparse.ArgumentParser:
