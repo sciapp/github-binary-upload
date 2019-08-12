@@ -12,15 +12,17 @@ import sys
 from typing import cast, Any, Callable, List, Optional  # noqa: F401  # pylint: disable=unused-import
 
 try:
-    # Allow an import of this module without `requests` being installed for meta data queries (e.g. version information)
+    # Allow an import of this module without `requests` and `yacl` being installed for meta data queries
+    # (e.g. version information)
     import requests
+    from yacl import setup_colored_stderr_logging
 except ImportError:
     pass
 
 
 __copyright__ = "Copyright © 2019 Forschungszentrum Jülich GmbH. All rights reserved."
 __license__ = "MIT"
-__version_info__ = (0, 1, 2)
+__version_info__ = (0, 1, 3)
 __version__ = ".".join(map(str, __version_info__))
 
 
@@ -72,63 +74,7 @@ class CredentialsReadError(Exception):
     pass
 
 
-class TerminalColorCodes:
-    BLACK = "\033[30;1m"
-    RED = "\033[31;1m"
-    GREEN = "\033[32;1m"
-    YELLOW = "\033[33;1m"
-    BLUE = "\033[34;1m"
-    PURPLE = "\033[35;1m"
-    CYAN = "\033[36;1m"
-    GRAY = "\033[37;1m"
-    LIGHT_BLACK = "\033[90;1m"
-    BLINK = "\033[5m"
-    RESET = "\033[0m"
-
-
-class ColoredFormatter(logging.Formatter):
-    _level_colors = {
-        "DEBUG": TerminalColorCodes.GREEN,
-        "INFO": TerminalColorCodes.BLUE,
-        "WARNING": TerminalColorCodes.YELLOW,
-        "ERROR": TerminalColorCodes.RED,
-        "CRITICAL": TerminalColorCodes.RED + TerminalColorCodes.BLINK,
-    }
-    _name_color = TerminalColorCodes.LIGHT_BLACK
-
-    def __init__(self, message_format: str):
-        super().__init__(message_format)
-
-    def format(self, record: logging.LogRecord) -> str:
-        levelname = record.levelname
-        name = record.name
-        if levelname in self._level_colors:
-            record.levelname = "{}{}{}".format(self._level_colors[levelname], levelname, TerminalColorCodes.RESET)
-        record.name = "{}{}{}".format(self._name_color, name, TerminalColorCodes.RESET)
-        return logging.Formatter.format(self, record)
-
-
-def has_terminal_color() -> bool:
-    try:
-        return os.isatty(sys.stderr.fileno()) and int(subprocess.check_output(["tput", "colors"])) >= 8
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return False
-
-
-def setup_colored_stderr_logging(logger: logging.Logger) -> None:  # pylint: disable=redefined-outer-name
-    stream_handler = logging.StreamHandler()
-    # stream_handler.setLevel(logger.level)
-    if has_terminal_color():
-        formatter = ColoredFormatter("%(levelname)s (%(name)s): %(message)s")  # type: logging.Formatter
-    else:
-        formatter = logging.Formatter("%(levelname)s (%(name)s): %(message)s")
-    stream_handler.setFormatter(formatter)
-    logger.addHandler(stream_handler)
-
-
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-setup_colored_stderr_logging(logger)
 
 
 class AttributeDict(dict):  # type: ignore
@@ -141,6 +87,11 @@ class AttributeDict(dict):  # type: ignore
 
 Release = collections.namedtuple("Release", ["id", "asset_upload_url"])
 Asset = collections.namedtuple("Asset", ["id", "name"])
+
+
+def setup_stderr_logging() -> None:
+    logging.basicConfig(level=logging.INFO)
+    setup_colored_stderr_logging(format_string="[%(levelname)s] %(message)s")
 
 
 def get_mimetype(filepath: str) -> str:
@@ -434,6 +385,7 @@ def main() -> None:
         MissingTagError,
         CredentialsReadError,
     )
+    setup_stderr_logging()
     try:
         args = parse_arguments()
         if args.print_version:
@@ -443,7 +395,7 @@ def main() -> None:
                 args.project, args.tag, args.assets, args.github_server, args.username, args.password, args.dry_run
             )
     except expected_exceptions as e:
-        print("{}error{}: {}".format(TerminalColorCodes.RED, TerminalColorCodes.RESET, str(e)), file=sys.stderr)
+        logger.error(str(e))
         for i, exception_class in enumerate(expected_exceptions, start=3):
             if isinstance(e, exception_class):
                 sys.exit(i)
