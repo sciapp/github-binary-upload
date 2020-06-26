@@ -26,7 +26,7 @@ class PyinstallerCommand(Command):
                     """
 #!/usr/bin/env python3
 
-from simple_term_menu import main
+from github_binary_upload import main
 
 
 if __name__ == "__main__":
