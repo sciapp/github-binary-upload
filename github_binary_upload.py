@@ -320,7 +320,11 @@ def get_argumentparser() -> argparse.ArgumentParser:
         "-n", "--dry-run", action="store_true", dest="dry_run", help="only print which releases would be published"
     )
     parser.add_argument(
-        "-u", "--user", action="store", dest="username", help="user account for querying the GitHub API"
+        "-u",
+        "--user",
+        action="store",
+        dest="username",
+        help="user account for querying the GitHub API; the password is read from stdin",
     )
     parser.add_argument(
         "-V", "--version", action="store_true", dest="print_version", help="print the version number and exit"
