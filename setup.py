@@ -1,7 +1,48 @@
 import os
 import runpy
 import subprocess
-from setuptools import setup, find_packages
+from distutils.cmd import Command
+from setuptools import setup
+from tempfile import TemporaryDirectory
+
+
+class PyinstallerCommand(Command):
+    description = "create a self-contained executable with PyInstaller"
+    user_options = []
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        with TemporaryDirectory() as temp_dir:
+            subprocess.check_call(["python3", "-m", "venv", os.path.join(temp_dir, "env")])
+            subprocess.check_call([os.path.join(temp_dir, "env/bin/pip"), "install", "."])
+            subprocess.check_call([os.path.join(temp_dir, "env/bin/pip"), "install", "pyinstaller"])
+            with open(os.path.join(temp_dir, "entrypoint.py"), "w") as f:
+                f.write(
+                    """
+#!/usr/bin/env python3
+
+from simple_term_menu import main
+
+
+if __name__ == "__main__":
+    main()
+                    """.strip()
+                )
+            subprocess.check_call(
+                [
+                    os.path.join(temp_dir, "env/bin/pyinstaller"),
+                    "--clean",
+                    "--name=github-binary-upload",
+                    "--onefile",
+                    "--strip",
+                    os.path.join(temp_dir, "entrypoint.py"),
+                ]
+            )
 
 
 def get_version_from_pyfile(version_file="github_binary_upload.py"):
@@ -27,6 +68,7 @@ setup(
     python_requires="~=3.3",
     install_requires=["requests", "yacl"],
     entry_points={"console_scripts": ["github-binary-upload = github_binary_upload:main"]},
+    cmdclass={"bdist_pyinstaller": PyinstallerCommand},
     author="Ingo Heimbach",
     author_email="i.heimbach@fz-juelich.de",
     description="github-binary-upload is a utility for publishing releases from tags with attached files on GitHub.",
