@@ -6,20 +6,23 @@
 
 ## Installation
 
-Install with `pip` directly from source:
-
-```bash
-python3 -m pip install git+https://iffgit.fz-juelich.de/Scientific-IT-Systems/github-binary-upload.git
-```
+- From PyPI:
+  ```bash
+  python3 -m pip install github-binary-upload
+  ```
+- A self-contained executable for Linux x86_64 with glibc >= 2.17 (any recent Linux distribution) is available on the
+  [releases page](https://github.com/sciapp/github-binary-upload/releases/latest).
+- AUR package for Arch Linux users:
+  [python-github-binary-upload](https://aur.archlinux.org/packages/python-github-binary-upload/)
 
 ## Usage
 
 After installation you can run `github-binary-upload`:
 
 ```
-usage: github-binary-upload [-h] [-g GITHUB_SERVER] [-c CREDENTIALS_FILE]
-                            [-l] [-n] [-u USERNAME] [-V]
-                            project [tag] [assets [assets ...]]
+usage: github-binary-upload [-h] [-g GITHUB_SERVER] [-c CREDENTIALS_FILE] [-l]
+                            [-n] [-u USERNAME] [-V]
+                            [project] [tag] [assets [assets ...]]
 
 github-binary-upload is a utility for publishing releases from tags with attached files on GitHub.
 
@@ -40,7 +43,8 @@ optional arguments:
   -l, --latest          get the latest tag from the GitHub API
   -n, --dry-run         only print which releases would be published
   -u USERNAME, --user USERNAME
-                        user account for querying the GitHub API
+                        user account for querying the GitHub API; the password
+                        is read from stdin
   -V, --version         print the version number and exit
 ```
 
@@ -49,8 +53,27 @@ optional arguments:
 Run
 
 ```bash
-github-binary-upload -u ExampleUser -l ExampleUser/ExampleProjet MyFirstAsset.zip MySecondAsset.whl
+github-binary-upload -u ExampleUser -l ExampleUser/ExampleProject MyFirstAsset.zip MySecondAsset.whl
 ```
 
-to create a release from the latest tag in the GitHub project `ExampleUser/ExampleProjet`. The files `MyFirstAsset.zip`
+to create a release from the latest tag in the GitHub project `ExampleUser/ExampleProject`. The files `MyFirstAsset.zip`
 and `MySecondAsset.whl` will be attached as downloadable files.
+
+`github-binary-upload` can be called multiple times on the same tag. The release will be recreated each time. This is
+especially useful to CI pipelines which can run more than once.
+
+### Python API
+
+`github-binary-upload` defines a function `publish_release_from_tag` which can be called from Python code:
+
+```python
+from github_binary_upload import publish_release_from_tag
+
+
+publish_release_from_tag(
+    project, tag, assets, github_server, username, password, dry_run
+)
+```
+
+If `tag` is `None`, the latest tag will be converted to a GitHub release. `dry_run` is an optional parameter which
+defaults to `False`.

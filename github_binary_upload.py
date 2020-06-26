@@ -22,7 +22,7 @@ except ImportError:
 
 __copyright__ = "Copyright © 2019 Forschungszentrum Jülich GmbH. All rights reserved."
 __license__ = "MIT"
-__version_info__ = (0, 1, 3)
+__version_info__ = (0, 1, 4)
 __version__ = ".".join(map(str, __version_info__))
 
 
@@ -320,7 +320,11 @@ def get_argumentparser() -> argparse.ArgumentParser:
         "-n", "--dry-run", action="store_true", dest="dry_run", help="only print which releases would be published"
     )
     parser.add_argument(
-        "-u", "--user", action="store", dest="username", help="user account for querying the GitHub API"
+        "-u",
+        "--user",
+        action="store",
+        dest="username",
+        help="user account for querying the GitHub API; the password is read from stdin",
     )
     parser.add_argument(
         "-V", "--version", action="store_true", dest="print_version", help="print the version number and exit"
