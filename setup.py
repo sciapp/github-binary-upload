@@ -75,7 +75,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     license="MIT",
-    url="https://iffgit.fz-juelich.de/Scientific-IT-Systems/github-binary-upload",
+    url="https://github.com/sciapp/github-binary-upload",
     keywords=["git", "GitHub", "release", "assets"],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
