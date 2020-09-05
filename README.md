@@ -6,6 +6,7 @@
 
 ## Installation
 
+As a prerequisite, `apt install file`.
 - From PyPI:
   ```bash
   python3 -m pip install github-binary-upload
