@@ -10,8 +10,8 @@
   ```bash
   python3 -m pip install github-binary-upload
   ```
-- Self-contained executables for Linux x86_64 with glibc >= 2.17 (any recent Linux distribution) and macOS Catalina and
-  newer are available on the [releases page](https://github.com/sciapp/github-binary-upload/releases/latest).
+- Self-contained executables for Linux x86_64 with glibc >= 2.17 (any recent Linux distribution) and macOS High Sierra
+  and newer are available on the [releases page](https://github.com/sciapp/github-binary-upload/releases/latest).
 - AUR package for Arch Linux users:
   [python-github-binary-upload](https://aur.archlinux.org/packages/python-github-binary-upload/)
 
