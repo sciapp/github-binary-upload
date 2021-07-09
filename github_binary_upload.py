@@ -9,7 +9,7 @@ import os
 import re
 import subprocess
 import sys
-from typing import cast, Any, Callable, List, Optional  # noqa: F401  # pylint: disable=unused-import
+from typing import Any, Callable, List, Optional, cast  # noqa: F401  # pylint: disable=unused-import
 
 try:
     # Allow an import of this module without `requests` and `yacl` being installed for meta data queries
@@ -22,7 +22,7 @@ except ImportError:
 
 __copyright__ = "Copyright © 2019 Forschungszentrum Jülich GmbH. All rights reserved."
 __license__ = "MIT"
-__version_info__ = (0, 1, 7)
+__version_info__ = (0, 1, 8)
 __version__ = ".".join(map(str, __version_info__))
 
 
@@ -99,17 +99,26 @@ def get_mimetype(filepath: str) -> str:
         raise FileNotFoundError('The file "{}" does not exist or is not a regular file.'.format(filepath))
     if not os.access(filepath, os.R_OK):
         raise PermissionError('The file "{}" is not readable.'.format(filepath))
-    try:
-        file_command_output = subprocess.check_output(
-            ["file", "--mime", filepath], universal_newlines=True
-        )  # type: str
-        mime_type = file_command_output.split()[1][:-1]
-    except subprocess.CalledProcessError as e:
-        raise FileCommandError("The `file` command returned with exit code {:d}".format(e.returncode))
-    except IndexError:
-        raise InvalidFileCommandOutputError(
-            'The file command output "{}" could not be parsed.'.format(file_command_output)
-        )
+
+    if os.name == "nt":
+        try:
+            import mimetypes
+
+            mime_type = mimetypes.types_map[f".{filepath.split('.')[-1]}"]
+        except ModuleNotFoundError:
+            raise Exception("mimetypes module not found. Do something like pip install mimetypes")
+    else:
+        try:
+            file_command_output = subprocess.check_output(
+                ["file", "--mime", filepath], universal_newlines=True
+            )  # type: str
+            mime_type = file_command_output.split()[1][:-1]
+        except subprocess.CalledProcessError as e:
+            raise FileCommandError("The `file` command returned with exit code {:d}".format(e.returncode))
+        except IndexError:
+            raise InvalidFileCommandOutputError(
+                'The file command output "{}" could not be parsed.'.format(file_command_output)
+            )
     return mime_type
 
 

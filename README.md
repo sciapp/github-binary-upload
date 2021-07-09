@@ -7,9 +7,11 @@
 ## Installation
 
 - From PyPI:
+
   ```bash
   python3 -m pip install github-binary-upload
   ```
+
 - Self-contained executables for Linux x86_64 with glibc >= 2.17 (any recent Linux distribution) and macOS High Sierra
   and newer are available on the [releases page](https://github.com/sciapp/github-binary-upload/releases/latest).
 - AUR package for Arch Linux users:
@@ -19,7 +21,7 @@
 
 After installation you can run `github-binary-upload`:
 
-```
+```text
 usage: github-binary-upload [-h] [-g GITHUB_SERVER] [-c CREDENTIALS_FILE] [-l]
                             [-n] [-u USERNAME] [-V]
                             [project] [tag] [assets [assets ...]]
@@ -77,3 +79,15 @@ publish_release_from_tag(
 
 If `tag` is `None`, the latest tag will be converted to a GitHub release. `dry_run` is an optional parameter which
 defaults to `False`.
+
+## Contributing
+
+Please open [an issue on GitHub](https://github.com/sciapp/github-binary-upload/issues/new) if you experience bugs or
+miss features. Please consider to send a pull request if you can spend time on fixing the issue yourself. This project
+uses [pre-commit](https://pre-commit.com) to ensure code quality and a consistent code style. Run
+
+```bash
+make git-hooks-install
+```
+
+to install all linters as Git hooks in your local clone of `github-binary-upload`.
