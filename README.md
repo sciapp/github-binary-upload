@@ -7,9 +7,11 @@
 ## Installation
 
 - From PyPI:
+
   ```bash
   python3 -m pip install github-binary-upload
   ```
+
 - Self-contained executables for Linux x86_64 with glibc >= 2.17 (any recent Linux distribution) and macOS High Sierra
   and newer are available on the [releases page](https://github.com/sciapp/github-binary-upload/releases/latest).
 - AUR package for Arch Linux users:
@@ -19,7 +21,7 @@
 
 After installation you can run `github-binary-upload`:
 
-```
+```text
 usage: github-binary-upload [-h] [-g GITHUB_SERVER] [-c CREDENTIALS_FILE] [-l]
                             [-n] [-u USERNAME] [-V]
                             [project] [tag] [assets [assets ...]]

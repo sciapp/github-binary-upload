@@ -9,7 +9,7 @@ import os
 import re
 import subprocess
 import sys
-from typing import cast, Any, Callable, List, Optional  # noqa: F401  # pylint: disable=unused-import
+from typing import Any, Callable, List, Optional, cast  # noqa: F401  # pylint: disable=unused-import
 
 try:
     # Allow an import of this module without `requests` and `yacl` being installed for meta data queries
@@ -99,15 +99,14 @@ def get_mimetype(filepath: str) -> str:
         raise FileNotFoundError('The file "{}" does not exist or is not a regular file.'.format(filepath))
     if not os.access(filepath, os.R_OK):
         raise PermissionError('The file "{}" is not readable.'.format(filepath))
-    
+
     if os.name == "nt":
         try:
             import mimetypes
+
             mime_type = mimetypes.types_map[f".{filepath.split('.')[-1]}"]
         except ModuleNotFoundError:
-            raise Exception(
-                "mimetypes module not found. Do something like pip install mimetypes"
-            )
+            raise Exception("mimetypes module not found. Do something like pip install mimetypes")
     else:
         try:
             file_command_output = subprocess.check_output(
