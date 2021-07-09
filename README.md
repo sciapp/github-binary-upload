@@ -77,3 +77,15 @@ publish_release_from_tag(
 
 If `tag` is `None`, the latest tag will be converted to a GitHub release. `dry_run` is an optional parameter which
 defaults to `False`.
+
+## Contributing
+
+Please open [an issue on GitHub](https://github.com/sciapp/github-binary-upload/issues/new) if you experience bugs or
+miss features. Please consider to send a pull request if you can spend time on fixing the issue yourself. This project
+uses [pre-commit](https://pre-commit.com) to ensure code quality and a consistent code style. Run
+
+```bash
+make git-hooks-install
+```
+
+to install all linters as Git hooks in your local clone of `github-binary-upload`.
