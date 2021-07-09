@@ -1,3 +1,5 @@
 .*
+!.gitignore
+!.gitlab-ci.yml
 *.pyc
 __pycache__/
