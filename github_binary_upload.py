@@ -22,7 +22,7 @@ except ImportError:
 
 __copyright__ = "Copyright © 2019 Forschungszentrum Jülich GmbH. All rights reserved."
 __license__ = "MIT"
-__version_info__ = (0, 1, 8)
+__version_info__ = (0, 1, 9)
 __version__ = ".".join(map(str, __version_info__))
 
 
@@ -104,7 +104,7 @@ def get_mimetype(filepath: str) -> str:
         try:
             import mimetypes
 
-            mime_type = mimetypes.types_map[f".{filepath.split('.')[-1]}"]
+            mime_type = mimetypes.types_map["." + filepath.split(".")[-1]]
         except ModuleNotFoundError:
             raise Exception("mimetypes module not found. Do something like pip install mimetypes")
     else:
