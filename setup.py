@@ -67,7 +67,7 @@ setup(
     name="github-binary-upload",
     version=version,
     py_modules=["github_binary_upload"],
-    python_requires="~=3.3",
+    python_requires="~=3.5",
     install_requires=["requests", "yacl"],
     entry_points={"console_scripts": ["github-binary-upload = github_binary_upload:main"]},
     cmdclass={"bdist_pyinstaller": PyinstallerCommand},
