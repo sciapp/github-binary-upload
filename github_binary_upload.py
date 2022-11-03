@@ -101,24 +101,23 @@ def get_mimetype(filepath: str) -> str:
         raise PermissionError('The file "{}" is not readable.'.format(filepath))
 
     if os.name == "nt":
-        try:
-            import mimetypes
+        import mimetypes
 
-            mime_type = mimetypes.types_map["." + filepath.split(".")[-1]]
-        except ModuleNotFoundError:
-            raise Exception("mimetypes module not found. Do something like pip install mimetypes")
+        mime_type = mimetypes.types_map["." + filepath.split(".")[-1]]
     else:
         try:
             file_command_output = subprocess.check_output(
                 ["file", "--mime", filepath], universal_newlines=True
             )  # type: str
             mime_type = file_command_output.split()[1][:-1]
+        except FileNotFoundError as e:
+            raise FileCommandError("The `file` command could not be found but is required.") from e
         except subprocess.CalledProcessError as e:
-            raise FileCommandError("The `file` command returned with exit code {:d}".format(e.returncode))
-        except IndexError:
+            raise FileCommandError("The `file` command returned with exit code {:d}".format(e.returncode)) from e
+        except IndexError as e:
             raise InvalidFileCommandOutputError(
                 'The file command output "{}" could not be parsed.'.format(file_command_output)
-            )
+            ) from e
     return mime_type
 
 
